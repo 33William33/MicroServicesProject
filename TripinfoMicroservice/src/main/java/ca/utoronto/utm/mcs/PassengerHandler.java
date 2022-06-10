@@ -1,0 +1,46 @@
+package ca.utoronto.utm.mcs;
+
+import com.mongodb.client.MongoCursor;
+import com.sun.net.httpserver.HttpExchange;
+import org.bson.Document;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
+
+public class PassengerHandler extends Endpoint {
+
+    @Override
+    public void handleGet(HttpExchange r) throws IOException, JSONException {
+        String[] params = r.getRequestURI().toString().split("/");
+        if (params.length != 4 || params[3].isEmpty()) {
+            this.sendStatus(r, 400, true);
+            return;
+        }
+
+        try {
+            String uid = params[3];
+            JSONArray ja = new JSONArray();
+            JSONObject tri = new JSONObject();
+            MongoCursor<Document> result = this.dao.getPassengerTrips(uid);
+            if (result.hasNext()) {
+                JSONObject res = new JSONObject();
+                while (result.hasNext()) {
+                    Document doc = result.next();
+                    ja.put(doc);
+                }
+                tri.put("trips", ja);
+                res.put("data", tri);
+                this.sendResponse(r, res, 200);
+            } else {
+                this.sendStatus(r, 404, true);
+            }
+            return;
+        } catch (Exception e) {
+            e.printStackTrace();
+            this.sendStatus(r, 403, true);
+            return;
+        }
+    }
+}
